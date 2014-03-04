@@ -1,0 +1,103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Content-Script-Type" content="text/javascript" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<meta name="robots" content="ALL" />
+<link rel="stylesheet" type="text/css" />
+<link href="css/base.css" rel="stylesheet" type="text/css" />
+<link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+<title>Google AJAX Feed API で複数ブログからフィードを取得して日付順に並び替えるサンプル</title>
+<script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="jQuery 1.9.1.js"></script>
+<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+<script type="text/javascript">
+
+google.load("feeds", "1");
+var entryArray = new Array();
+var entryNum = 0;
+//	alert(entryArray.length);
+
+function initialize() {
+	feedAdd("http://president.jp/list/rss", 1); //President
+	feedAdd("http://toyokeizai.net/list/feed/rss", 1); //東洋経済
+	feedAdd("http://diamond.jp/list/feed/rsszol", 1); //ZAI オンライン
+	feedAdd("http://rss.rssad.jp/rss/h/wired/feed.rdf", 1); //WIRED
+	feedAdd("http://www.newsweekjapan.jp/column/rss.xml", 1); //Newsweek
+}
+
+//取得するフィードの追加（rssUrl：フィードのURL , boolNum：追加するフィードURLが最後の場合「1」を入れる）
+function feedAdd(rssUrl, boolNum) {
+	var feed = new google.feeds.Feed(rssUrl);//フィードの取得
+	feed.setNumEntries(10);//ブログ1つあたりの取得するフィード数
+	feed.load(function(result) {
+		if (!result.error) {
+			for (var i = 0; i < result.feed.entries.length; i++) {
+				entryArray.push(result.feed.entries[i]);
+				var date = new Date(result.feed.entries[i].publishedDate);
+				var title = result.feed.title;
+				//ソート用（日付）を連想配列に代入
+				entryArray[entryNum].sortDate =  date.getTime();
+				entryArray[entryNum].blogName = result.feed.title;//ブログ名を連想配列に代入
+				entryNum+=1;
+			}
+		}
+		if(boolNum==1){
+			feedOutput("feed", 50);//フィードの出力
+			}
+	});
+}
+
+//フィードの出力（feedId：出力するオブジェクトのID , listNum：出力するリスト数。「0」の場合全て）
+function feedOutput(feedId, listNum){
+	var useFeed = "";
+	var postDate ="";
+	var container = document.getElementById(feedId);//表示部分を選択
+	entryArray = asort(entryArray, "sortDate");//日付でソート
+	if(listNum==0){
+		listNum = entryNum;
+	}
+	for (var i = 0; i < listNum; i++) {
+		var entry = entryArray[i];
+		//アメブロの広告記事対策
+		re = new RegExp("rss.rssad.jp", "i");
+		if (entry.link.match(re)) {
+		}
+		else {
+			if (!(entry.title.slice(0,3) == 'PR:')) {
+				var title = entry.title };
+			var date = new Date(entry.publishedDate);//日付の表示変更
+			var tsuki = date.getMonth() + 1; // 月
+		//mm/dd形式での出力（ex.01/01）
+		if(tsuki < 10) { tsuki = "0" + tsuki; }
+		var hiduke = date.getDate(); // 日付
+		if(hiduke < 10) { hiduke = "0" + hiduke; }
+		var hour = date.getHours(); // 時間
+		if(hour < 10) { hour = "0" + hour; }
+		var min = date.getMinutes(); //分
+		if(min < 10) { min = "0" + min; }
+		if(i <11) {var displayNew = '&nbsp;&nbsp&nbsp;&nbsp<img src="img/point1.gif">'; } else { var displayNew = "";}
+		useFeed += '<table class="table-bordered table-condensed"><tr><td>' +  tsuki + '/' + hiduke + '(' +　　hour + ':' + min + ')' + '</td> <td width="500"><a href="' + entry.link + '" target="_blank">' + title.substring(0,30) +'</a>'+ displayNew +'</td> <td width="200">' + 　　 entry.blogName.substring(0,14) + '</td></tr></table>';//HTMLで書き出し
+	}
+	container.innerHTML = useFeed;
+}
+}
+function asort(myArray, key){
+	//return myArray.sort ( function (b1, b2) { return b1[key] > b2[key] ? 1 : -1; } );//昇順
+	return myArray.sort ( function (b1, b2) { return b1[key] > b2[key] ? -1 : 1; } );//降順
+}
+google.setOnLoadCallback(initialize);
+</script>
+</style>
+</head>
+<body>
+
+<div id="feed"></div>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-11895098-1");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>
